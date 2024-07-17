@@ -6,11 +6,6 @@ import streamlit as st
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-st.title("🎈 My new app")
-st.write(
-    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
-)
-
 # Define the scope for Google Sheets API
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -93,7 +88,7 @@ def main():
     # Configuration
     spreadsheet_id = st.secrets["spreadsheet_id"]
     calculation_base = "sendAmount"
-    amount = st.number_input("Enter amount", min_value=1.0, value=101.0, step=0.01)
+    amount = st.number_input("Enter amount", min_value=1.0, value=101.0, step=1.0)
     braze_api_key = st.secrets["braze_api_key"]
     catalog_name = 'transfer_rates'
 
