@@ -18,7 +18,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 def connect_to_google_sheets():
     # Create credentials from environment secrets
     credentials = service_account.Credentials.from_service_account_info(
-        json.loads(st.secrets["gcp_service_account"]),
+        st.secrets["gcp_service_account"],
         scopes=SCOPES
     )
     return build('sheets', 'v4', credentials=credentials)
