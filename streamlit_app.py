@@ -1,5 +1,4 @@
 import requests
-import json
 import pandas as pd
 import time
 import streamlit as st
@@ -67,21 +66,6 @@ def update_google_sheet_with_dataframe(service, spreadsheet_id, dataframe, sheet
         body=body
     ).execute()
 
-def update_braze_catalog(dataframe, braze_api_key, catalog_name):
-    url = f"https://rest.fra-02.braze.eu/catalogs/{catalog_name}/items"
-    headers = {
-        'Authorization': f'Bearer {braze_api_key}',
-        'Content-Type': 'application/json'
-    }
-    items = dataframe.to_dict(orient='records')
-    payload = json.dumps({"items": items})
-    
-    response = requests.put(url, headers=headers, data=payload)
-    if response.status_code == 202:
-        st.success("Braze catalog updated successfully.")
-    else:
-        st.error(f"Failed to update Braze catalog: {response.text}")
-
 def main():
     st.title("Transfer Rate Calculator and Updater")
 
@@ -127,9 +111,6 @@ def main():
             
             # Update Google Sheet with the DataFrame
             update_google_sheet_with_dataframe(service, spreadsheet_id, df, 'results')
-            
-            # Update Braze catalog
-            update_braze_catalog(df, braze_api_key, catalog_name)
 
         st.success("Process completed successfully!")
         st.dataframe(df)
