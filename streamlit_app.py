@@ -93,7 +93,7 @@ def main():
             data = []
             progress_bar = st.progress(0)
             for i, row in enumerate(rows):
-                if len(row) >= 7:
+                if len(row) >= 6:
                     country_of_residence = row[1]
                     blended_hub = row[2]
                     to_country_code = row[3]
