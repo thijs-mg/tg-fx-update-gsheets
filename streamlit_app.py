@@ -30,8 +30,10 @@ def get_transfer_rate(calculation_base, amount, country_of_residence, to_country
 
     time.sleep(1 / 7)  # Sleep to ensure not more than 7 calls per second
 
+    st.write(f"Making API call with parameters: {params}")
     response = requests.get(url, params=params)
     response_data = response.json()
+    st.write(f"API Response: {response_data}")
 
     try:
         rates = [payment_option['quote']['rate'] 
@@ -65,6 +67,7 @@ def update_google_sheet_with_dataframe(service, spreadsheet_id, dataframe, sheet
         valueInputOption="RAW",
         body=body
     ).execute()
+    st.write(f"Updated Google Sheet '{sheet_name}' with {len(dataframe)} rows")
 
 def main():
     st.title("Transfer Rate Calculator and Updater")
@@ -84,6 +87,7 @@ def main():
             # Read rows from the Google Sheet
             sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range='Base!A2:F').execute()
             rows = sheet.get('values', [])
+            st.write(f"Read {len(rows)} rows from Google Sheet")
 
             # Prepare DataFrame
             data = []
@@ -97,8 +101,10 @@ def main():
                     to_currency_code = row[5]
                     row_id = f"{country_of_residence}-{blended_hub}"
 
+                    st.write(f"Processing row {i+1}: {row_id}")
                     rate = get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code)
                     data.append([row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, rate])
+                    st.write(f"Calculated rate: {rate}")
                 
                 progress_bar.progress((i + 1) / len(rows))
 
