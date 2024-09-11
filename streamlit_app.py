@@ -17,6 +17,25 @@ def connect_to_google_sheets():
     )
     return build('sheets', 'v4', credentials=credentials)
 
+def parse_api_response(response_data):
+    parsed_response = {
+        "deliveryOptions": {},
+        "paymentOptions": {},
+        "rates": []
+    }
+    
+    for delivery_key, delivery_value in response_data.get('deliveryOptions', {}).items():
+        parsed_response["deliveryOptions"][delivery_key] = delivery_value.get('name', 'Unknown')
+        
+        for payment_key, payment_value in delivery_value.get('paymentOptions', {}).items():
+            parsed_response["paymentOptions"][payment_key] = payment_value.get('name', 'Unknown')
+            
+            quote = payment_value.get('quote', {})
+            if 'rate' in quote:
+                parsed_response["rates"].append(quote['rate'])
+    
+    return parsed_response
+
 def get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code):
     url = "https://my.transfergo.com/api/transfers/quote"
     params = {
@@ -30,21 +49,21 @@ def get_transfer_rate(calculation_base, amount, country_of_residence, to_country
 
     time.sleep(1 / 7)  # Sleep to ensure not more than 7 calls per second
 
-    st.write(f"Making API call with parameters: {params}")
     response = requests.get(url, params=params)
     response_data = response.json()
-    st.write(f"API Response: {response_data}")
+    
+    parsed_response = parse_api_response(response_data)
+    
+    st.session_state.latest_api_call = {
+        "parameters": params,
+        "parsed_response": parsed_response
+    }
 
     try:
-        rates = [payment_option['quote']['rate'] 
-                 for delivery_option in response_data['deliveryOptions'].values() 
-                 for payment_option in delivery_option['paymentOptions'].values()]
-        highest_rate = max(rates)
-        unique_highest_rates = list(set([rate for rate in rates if rate == highest_rate]))
-
-        return round(unique_highest_rates[0], 2)
-    except KeyError as e:
-        st.error(f"Key error: {e}")
+        highest_rate = max(parsed_response["rates"])
+        return round(highest_rate, 2)
+    except ValueError:
+        st.error("No valid rates found in the API response.")
         return None
 
 def update_google_sheet_with_dataframe(service, spreadsheet_id, dataframe, sheet_name):
@@ -101,10 +120,8 @@ def main():
                     to_currency_code = row[5]
                     row_id = f"{country_of_residence}-{blended_hub}"
 
-                    st.write(f"Processing row {i+1}: {row_id}")
                     rate = get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code)
                     data.append([row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, rate])
-                    st.write(f"Calculated rate: {rate}")
                 
                 progress_bar.progress((i + 1) / len(rows))
 
@@ -115,6 +132,11 @@ def main():
 
         st.success("Process completed successfully!")
         st.dataframe(df)
+
+        # Display the latest API call details
+        if hasattr(st.session_state, 'latest_api_call'):
+            st.subheader("Latest API Call Details")
+            st.json(st.session_state.latest_api_call)
 
 if __name__ == "__main__":
     main()
