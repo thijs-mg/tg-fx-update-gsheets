@@ -82,7 +82,7 @@ def main():
             service = connect_to_google_sheets()
 
             # Read rows from the Google Sheet
-            sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range='Base!A2:G').execute()
+            sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range='Base!A2:F').execute()
             rows = sheet.get('values', [])
 
             # Prepare DataFrame
@@ -92,22 +92,17 @@ def main():
                 if len(row) >= 7:
                     country_of_residence = row[1]
                     blended_hub = row[2]
-                    nationality = row[3]
-                    to_country_code = row[4]
-                    from_currency_code = row[5]
-                    to_currency_code = row[6]
-
-                    if blended_hub in ["Baltics", "CIS", "Caucasia"]:
-                        row_id = f"{country_of_residence}-{nationality}"
-                    else:
-                        row_id = f"{country_of_residence}-{blended_hub}"
+                    to_country_code = row[3]
+                    from_currency_code = row[4]
+                    to_currency_code = row[5]
+                    row_id = f"{country_of_residence}-{blended_hub}"
 
                     rate = get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code)
-                    data.append([row_id, country_of_residence, blended_hub, nationality, to_country_code, from_currency_code, to_currency_code, rate])
+                    data.append([row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, rate])
                 
                 progress_bar.progress((i + 1) / len(rows))
 
-            df = pd.DataFrame(data, columns=['id', 'country_of_residence', 'blended_hub', 'nationality', 'to_country_code', 'from_currency_code', 'to_currency_code', 'transfer_rate'])
+            df = pd.DataFrame(data, columns=['id', 'country_of_residence', 'blended_hub', 'to_country_code', 'from_currency_code', 'to_currency_code', 'transfer_rate'])
             
             # Update Google Sheet with the DataFrame
             update_google_sheet_with_dataframe(service, spreadsheet_id, df, 'results')
