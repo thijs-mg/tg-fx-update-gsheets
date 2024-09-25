@@ -49,22 +49,31 @@ def get_transfer_rate(calculation_base, amount, country_of_residence, to_country
 
     time.sleep(1 / 7)  # Sleep to ensure not more than 7 calls per second
 
-    response = requests.get(url, params=params)
-    response_data = response.json()
-    
-    parsed_response = parse_api_response(response_data)
-    
-    st.session_state.latest_api_call = {
-        "parameters": params,
-        "parsed_response": parsed_response
-    }
-
     try:
-        highest_rate = max(parsed_response["rates"])
-        return round(highest_rate, 2)
-    except ValueError:
-        st.error("No valid rates found in the API response.")
+        response = requests.get(url, params=params)
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            parsed_response = parse_api_response(response_data)
+            
+            st.session_state.latest_api_call = {
+                "parameters": params,
+                "parsed_response": parsed_response
+            }
+
+            try:
+                highest_rate = max(parsed_response["rates"])
+                return round(highest_rate, 2)
+            except ValueError:
+                st.warning(f"No valid rates found for {params}")
+                return None
+        else:
+            st.warning(f"API request failed with status code {response.status_code} for {params}")
+            return None
+    except requests.RequestException as e:
+        st.error(f"API request error: {str(e)}")
         return None
+
 
 def update_google_sheet_with_dataframe(service, spreadsheet_id, dataframe, sheet_name):
     sheets_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
@@ -98,7 +107,7 @@ def main():
     braze_api_key = st.secrets["braze_api_key"]
     catalog_name = 'transfer_rates'
 
-    if st.button("Calculate and Update"):
+        if st.button("Calculate and Update"):
         with st.spinner("Processing..."):
             # Connect to Google Sheets
             service = connect_to_google_sheets()
