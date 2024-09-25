@@ -107,7 +107,7 @@ def main():
     braze_api_key = st.secrets["braze_api_key"]
     catalog_name = 'transfer_rates'
 
-        if st.button("Calculate and Update"):
+    if st.button("Calculate and Update"):
         with st.spinner("Processing..."):
             # Connect to Google Sheets
             service = connect_to_google_sheets()
