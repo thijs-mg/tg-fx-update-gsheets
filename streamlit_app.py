@@ -123,7 +123,8 @@ def main():
             # Read rows from the Google Sheet
             sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range='Base!A2:G').execute()
             rows = sheet.get('values', [])
-            st.write(f"Read {len(rows)} rows from Google Sheet")
+            total_rows = len(rows)
+            st.write(f"Read {total_rows} rows from Google Sheet")
 
             # Prepare DataFrame
             data = []
@@ -140,15 +141,18 @@ def main():
 
                     rate = get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code)
                     data.append([row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, nationality, rate])
+                else:
+                    # If the row doesn't have enough columns, add it with empty values
+                    data.append([f"Row{i+2}", *row, *([""] * (7 - len(row))), None])
                 
-                progress_bar.progress((i + 1) / len(rows))
+                progress_bar.progress((i + 1) / total_rows)
 
             df = pd.DataFrame(data, columns=['id', 'country_of_residence', 'blended_hub', 'to_country_code', 'from_currency_code', 'to_currency_code', 'nationality', 'transfer_rate'])
             
             # Update Google Sheet with the DataFrame
             update_google_sheet_with_dataframe(service, spreadsheet_id, df, 'results')
 
-        st.success("Process completed successfully!")
+        st.success(f"Process completed successfully! Updated {total_rows} rows.")
         st.dataframe(df)
 
         # Display the latest API call details
