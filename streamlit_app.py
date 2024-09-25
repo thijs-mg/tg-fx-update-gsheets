@@ -121,54 +121,34 @@ def main():
             service = connect_to_google_sheets()
 
             # Read rows from the Google Sheet
-            sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range='Base!A2:G').execute()
+            sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range='Base!A2:F').execute()
             rows = sheet.get('values', [])
-            total_rows = len(rows)
-            st.write(f"Read {total_rows} rows from Google Sheet")
+            st.write(f"Read {len(rows)} rows from Google Sheet")
 
             # Prepare DataFrame
             data = []
             progress_bar = st.progress(0)
             for i, row in enumerate(rows):
-                if len(row) >= 7:
+                if len(row) >= 6:
                     country_of_residence = row[1]
                     blended_hub = row[2]
                     to_country_code = row[3]
                     from_currency_code = row[4]
                     to_currency_code = row[5]
-                    nationality = row[6]
                     row_id = f"{country_of_residence}-{blended_hub}"
 
                     rate = get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code)
-                    new_row = [row[0], row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, nationality, rate]
-                else:
-                    # If the row doesn't have enough columns, add it with empty values
-                    new_row = [f"Row{i+2}", f"Row{i+2}", *row, *([""] * (7 - len(row))), None]
+                    data.append([row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, rate])
                 
-                data.append(new_row)
-                progress_bar.progress((i + 1) / total_rows)
+                progress_bar.progress((i + 1) / len(rows))
 
-            # Debug: Print the length of each row in data
-            st.write("Number of columns in each row:")
-            for i, row in enumerate(data[:10]):  # Print first 10 rows for debugging
-                st.write(f"Row {i}: {len(row)} columns")
-
-            # Debug: Print the first row of data
-            st.write("First row of data:")
-            st.write(data[0])
-
-            columns = ['original_id', 'id', 'country_of_residence', 'blended_hub', 'to_country_code', 'from_currency_code', 'to_currency_code', 'nationality', 'transfer_rate']
-            
-            # Debug: Print the number of columns
-            st.write(f"Number of columns specified: {len(columns)}")
-
-            df = pd.DataFrame(data, columns=columns)
+            df = pd.DataFrame(data, columns=['id', 'country_of_residence', 'blended_hub', 'to_country_code', 'from_currency_code', 'to_currency_code', 'transfer_rate'])
             
             # Update Google Sheet with the DataFrame
             update_google_sheet_with_dataframe(service, spreadsheet_id, df, 'results')
 
-        st.success(f"Process completed successfully! Updated {total_rows} rows.")
-        st.dataframe(df.head())  # Show first few rows of the DataFrame
+        st.success("Process completed successfully!")
+        st.dataframe(df)
 
         # Display the latest API call details
         if hasattr(st.session_state, 'latest_api_call'):
