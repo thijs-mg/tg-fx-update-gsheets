@@ -140,20 +140,35 @@ def main():
                     row_id = f"{country_of_residence}-{blended_hub}"
 
                     rate = get_transfer_rate(calculation_base, amount, country_of_residence, to_country_code, from_currency_code, to_currency_code)
-                    data.append([row[0], row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, nationality, rate])
+                    new_row = [row[0], row_id, country_of_residence, blended_hub, to_country_code, from_currency_code, to_currency_code, nationality, rate]
                 else:
                     # If the row doesn't have enough columns, add it with empty values
-                    data.append([f"Row{i+2}", f"Row{i+2}", *row, *([""] * (7 - len(row))), None])
+                    new_row = [f"Row{i+2}", f"Row{i+2}", *row, *([""] * (7 - len(row))), None]
                 
+                data.append(new_row)
                 progress_bar.progress((i + 1) / total_rows)
 
-            df = pd.DataFrame(data, columns=['original_id', 'id', 'country_of_residence', 'blended_hub', 'to_country_code', 'from_currency_code', 'to_currency_code', 'nationality', 'transfer_rate'])
+            # Debug: Print the length of each row in data
+            st.write("Number of columns in each row:")
+            for i, row in enumerate(data[:10]):  # Print first 10 rows for debugging
+                st.write(f"Row {i}: {len(row)} columns")
+
+            # Debug: Print the first row of data
+            st.write("First row of data:")
+            st.write(data[0])
+
+            columns = ['original_id', 'id', 'country_of_residence', 'blended_hub', 'to_country_code', 'from_currency_code', 'to_currency_code', 'nationality', 'transfer_rate']
+            
+            # Debug: Print the number of columns
+            st.write(f"Number of columns specified: {len(columns)}")
+
+            df = pd.DataFrame(data, columns=columns)
             
             # Update Google Sheet with the DataFrame
             update_google_sheet_with_dataframe(service, spreadsheet_id, df, 'results')
 
         st.success(f"Process completed successfully! Updated {total_rows} rows.")
-        st.dataframe(df)
+        st.dataframe(df.head())  # Show first few rows of the DataFrame
 
         # Display the latest API call details
         if hasattr(st.session_state, 'latest_api_call'):
