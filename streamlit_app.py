@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import numpy as np
 import time
 import streamlit as st
 from google.oauth2 import service_account
@@ -63,7 +64,7 @@ def get_transfer_rate(calculation_base, amount, country_of_residence, to_country
 
             try:
                 highest_rate = max(parsed_response["rates"])
-                return round(highest_rate, 2)
+                return round(highest_rate, 2) if highest_rate is not None else None
             except ValueError:
                 st.warning(f"No valid rates found for {params}")
                 return None
@@ -87,7 +88,14 @@ def update_google_sheet_with_dataframe(service, spreadsheet_id, dataframe, sheet
     body = {'requests': [{'addSheet': {'properties': {'title': sheet_name}}}]}
     service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
 
-    values = [dataframe.columns.values.tolist()] + dataframe.values.tolist()
+    # Replace NaN values with None (which will become null in JSON)
+    dataframe = dataframe.replace({np.nan: None})
+
+    # Convert DataFrame to list of lists, explicitly converting None to empty string
+    values = [dataframe.columns.values.tolist()] + [
+        ['' if v is None else v for v in row] for row in dataframe.values.tolist()
+    ]
+
     body = {'values': values}
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id,
